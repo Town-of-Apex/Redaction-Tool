@@ -1,0 +1,13 @@
+services:
+  redaction-tool:
+    build: .
+    container_name: redaction-tool
+    restart: always
+    ports:
+      - "9000:8000"
+    environment:
+      - PORT=8000
+      - FLASK_DEBUG=false
+    # Optional: mount a directory if you want to save logs or processed files persistent (though not needed for current app logic)
+    # volumes:
+    #   - ./data:/app/data
