@@ -11,3 +11,5 @@ services:
     # Optional: mount a directory if you want to save logs or processed files persistent (though not needed for current app logic)
     # volumes:
     #   - ./data:/app/data
+
+

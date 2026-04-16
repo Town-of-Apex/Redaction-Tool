@@ -1,49 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Redaction Tool</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Apex Redact</title>
+    <!-- 1. Include the Universal CSS -->
+    <link rel="stylesheet" href="static/apex-modern.css">
+    <!-- 2. Include your app-specific styles (e.g., custom animations or specific tool layouts) -->
+    <link rel="stylesheet" href="static/style.css">
 </head>
+
 <body>
 
+    <!-- STANDARD HEADER -->
     <header>
-        <h1>Apex Redact</h1>
+        <div class="app-container">
+            <div class="header-content">
+                <!-- Branding Logo -->
+                <svg class="app-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="6" fill="var(--brand-teal)" />
+                    <path d="M16 8L24 22H8L16 8Z" fill="white" />
+                </svg>
+                <h1 class="title-display">Apex Redact</h1>
+            </div>
+        </div>
     </header>
 
-    <div class="container">
-        <div class="card" id="uploadCard">
-            <h2 style="font-family: var(--font-dm-serif); font-weight: normal; margin-top:0;">Upload Document</h2>
-            <p class="helper-text">Select a text-searchable PDF building permit application. We analyze locally and safely.</p>
-            
-            <div class="upload-zone" id="dropZone">
-                <input type="file" id="fileInput" accept="application/pdf">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--brand-accent)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p>Click or drag and drop a PDF file here</p>
-            </div>
-            
-            <div id="loading">Processing document, finding signatures...</div>
-        </div>
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+        <div class="app-container">
 
-        <div class="preview-container" id="previewContainer">
-            <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <h2 style="font-family: var(--font-dm-serif); font-weight: normal;">Verify Redactions</h2>
-                <span class="box-tag" style="position:relative; background: var(--cool-insight); font-size: 12px;">Draw manually or click to remove</span>
-            </div>
-            
-            <div id="pagesArea"></div>
-            
-            <div class="controls">
-                <button class="btn btn-secondary" onclick="window.location.reload()">Start Over</button>
-                <button class="btn" id="redactBtn">
-                    Confirm & Download Redacted
-                </button>
-            </div>
-        </div>
-    </div>
+            <!-- Initial Upload State -->
+            <div class="card" id="uploadCard">
+                <p class="metadata">Security & Compliance</p>
+                <h2 class="mt-1">Upload Document</h2>
+                <p class="body-text mt-2">Select a text-searchable PDF building permit application. Analysis is
+                    performed
+                    locally in your browser to ensure data privacy.</p>
 
-    <!-- Pass in a minimal local app logic -->
+                <!-- Use 'mt-8' for standard section spacing -->
+                <div class="mt-8">
+                    <div class="upload-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept="application/pdf">
+                        <svg class="icon"
+                            style="width: 40px; height: 40px; color: var(--brand-teal); margin-bottom: 1rem;"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Click or drag and drop a PDF file here</p>
+                    </div>
+
+                    <div id="loading" class="mt-4">Processing document, identifying sensitive fields...</div>
+                </div>
+            </div>
+
+            <!-- Preview & Redact State -->
+            <div class="preview-container" id="previewContainer">
+                <div class="card">
+                    <p class="metadata">Manual Review Required</p>
+                    <h2 class="mt-1">Verify Redactions</h2>
+                    <p class="body-text mt-2">Review the automatically detected signatures. Click any box to remove it,
+                        or click and drag to add new redaction areas.</p>
+
+                    <div id="pagesArea" class="mt-8"></div>
+
+                    <!-- Use 'btn' classes for actions -->
+                    <div class="flex-row mt-8">
+                        <button class="btn btn-primary" id="redactBtn">
+                            Confirm & Download Redacted
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.location.reload()">
+                            Cancel & Start Over
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
     <script src="/static/app.js"></script>
 </body>
+
 </html>

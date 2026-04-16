@@ -1,0 +1,206 @@
+/* 
+  APEX MODERN DESIGN SYSTEM - UNIVERSAL STYLESHEET
+  Version: 1.0.0
+  Aesthetics: Premium, Professional, Traditionalist-Modern
+  Rules: Strictly Left-Aligned, Layered Surfaces, No Pills, No Emojis.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    /* --- LAYERED SURFACES (The Contrast Rule) --- */
+    --bg-canvas: #f8f9fa;   /* L0: Root Background */
+    --bg-surface: #ffffff;  /* L1: Primary Containers/Cards */
+    --bg-inner: #f1f3f5;    /* L2: Inputs/Recessed Panels */
+    
+    /* --- BRAND PALETTE --- */
+    --brand-teal: #005a70;  /* Primary Action */
+    --brand-rosy: #968f8b;  /* Metadata/Supportive */
+    --text-main: #1a1a1a;   /* Professional Dark Gray for Body */
+    --border-line: #e9ecef;
+    
+    /* --- GEOMETRY --- */
+    --radius-btn: 6px;
+    --radius-card: 12px;
+    --radius-modal: 16px;
+    
+    /* --- LOGO SIZE --- */
+    --logo-size: 32px;
+    
+    /* --- LAYOUT --- */
+    --container-width: 1152px; /* Equivalent to max-w-6xl */
+    --header-height: 72px;
+}
+
+/* --- BASE STYLES --- */
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-canvas);
+    color: var(--text-main);
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* --- TYPOGRAPHY --- */
+h1, h2, h3, .title-display {
+    font-family: 'DM Serif Display', serif;
+    font-weight: 400;
+    margin: 0;
+    letter-spacing: -0.01em;
+    color: var(--brand-teal);
+    text-align: left; /* Strict Anchor */
+}
+
+h1 { font-size: 2.5rem; line-height: 1.1; }
+h2 { font-size: 1.875rem; }
+
+p, .body-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.metadata {
+    font-size: 0.8125rem;
+    color: var(--brand-rosy);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* --- LAYOUT WRAPPERS --- */
+.app-container {
+    width: 100%;
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 2rem;
+    text-align: left;
+}
+
+header {
+    height: var(--header-height);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-line);
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.main-content {
+    padding-top: 3rem;
+    padding-bottom: 5rem;
+    flex: 1;
+}
+
+/* --- COMPONENTS --- */
+
+/* Surface Level 1: Cards */
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-line);
+    border-radius: var(--radius-card);
+    padding: 2.5rem;
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -10px rgba(0, 90, 112, 0.12); /* Subtle Teal Lift */
+}
+
+/* Surface Level 2: Inputs & Inner Blocks */
+input, textarea, select, .inner-well {
+    background: var(--bg-inner);
+    border: 1px solid transparent;
+    border-radius: var(--radius-btn);
+    padding: 0.75rem 1rem;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    color: var(--text-main);
+    width: 100%;
+    transition: border-color 0.2s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--brand-teal);
+    background: var(--bg-surface);
+}
+
+/* Buttons (Strict Geometry: No Pills) */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    border-radius: var(--radius-btn);
+    cursor: pointer;
+    transition: all 0.3s ease-out;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--brand-teal);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+    box-shadow: 0 4px 12px rgba(0, 90, 112, 0.2);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    background: var(--bg-inner);
+    color: var(--text-main);
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+/* --- UTILITIES --- */
+.flex-row { display: flex; align-items: center; gap: 1rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-8 { margin-top: 2rem; }
+
+/* SVG Icon scaling */
+.icon {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.app-logo {
+    width: var(--logo-size);
+    height: var(--logo-size);
+    flex-shrink: 0;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}

@@ -1,0 +1,62 @@
+# Apex Modern Universal HTML Template
+
+Use this boilerplate for every new application to ensure the logo, title, and layout align perfectly across all tools.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Name | Apex Modern</title>
+    <!-- 1. Include the Universal CSS -->
+    <link rel="stylesheet" href="static/apex-modern.css">
+    <!-- 2. Include your app-specific styles (e.g., custom animations or specific tool layouts) -->
+    <link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+
+    <!-- STANDARD HEADER -->
+    <header>
+        <div class="app-container">
+            <div class="header-content">
+                <!-- Branding Logo (Replace SVG path with actual logo) -->
+                <svg class="app-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="6" fill="var(--brand-teal)" />
+                    <path d="M16 8L24 22H8L16 8Z" fill="white" />
+                </svg>
+                <h1 class="title-display">App Title here</h1>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+        <div class="app-container">
+
+            <!-- Use 'card' class for primary surfaces -->
+            <div class="card">
+                <p class="metadata">Section Category</p>
+                <h2 class="mt-1">Main Heading</h2>
+                <p class="body-text mt-2">Description text goes here.</p>
+
+                <!-- Use 'mt-8' for standard section spacing -->
+                <div class="mt-8">
+                    <!-- Content goes here -->
+                </div>
+
+                <!-- Use 'btn' classes for actions -->
+                <div class="flex-row mt-8">
+                    <button class="btn btn-primary">Primary Action</button>
+                    <button class="btn btn-secondary">Secondary Action</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+
+</html>

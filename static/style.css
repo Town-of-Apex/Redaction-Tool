@@ -1,71 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;600;700&display=swap');
-
-:root {
-  --deep-ink: #1F2A2E;
-  --soft-canvas: #F7F9F8;
-  --muted-slate: #5C6B73;
-  --brand-accent: #2F6F5E;
-  --warm-signal: #F2A65A;
-  --cool-insight: #5DA9E9;
-  --line-gray: #E2E8E5;
-}
-
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Inter', sans-serif;
-    background-color: var(--soft-canvas);
-    color: var(--deep-ink);
-    -webkit-font-smoothing: antialiased;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
-
-header {
-    background-color: #fff;
-    padding: 24px 48px;
-    border-bottom: 1px solid var(--line-gray);
-    box-shadow: 0 2px 10px -4px rgba(0,0,0,0.05);
-}
-
-h1 {
-    font-family: 'DM Serif Display', serif;
-    font-weight: normal;
-    margin: 0;
-    letter-spacing: -0.02em;
-    color: var(--deep-ink);
-}
-
-.container {
-    padding: 48px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.card {
-    background: #fff;
-    border-radius: 24px;
-    padding: 48px;
-    box-shadow: 0 2px 10px -4px rgba(0,0,0,0.05);
-    width: 100%;
-    max-width: 900px;
-}
+/* --- REDACTION TOOL SPECIFIC OVERRIDES --- */
 
 .upload-zone {
-    border: 2px dashed var(--muted-slate);
-    border-radius: 16px;
+    border: 2px dashed var(--brand-rosy);
+    border-radius: var(--radius-card);
     padding: 64px 24px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease-out;
+    background: var(--bg-inner);
 }
 
 .upload-zone:hover {
-    border-color: var(--brand-accent);
-    background-color: rgba(47, 111, 94, 0.05);
+    border-color: var(--brand-teal);
+    background-color: var(--bg-surface);
 }
 
 .upload-zone input {
@@ -73,40 +20,8 @@ h1 {
 }
 
 .upload-zone p {
-    color: var(--muted-slate);
+    color: var(--brand-rosy);
     margin: 8px 0 0 0;
-}
-
-.btn {
-    background-color: var(--brand-accent);
-    color: #fff;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease-out;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(47, 111, 94, 0.2);
-}
-
-.btn:active {
-    transform: scale(0.98);
-}
-
-.btn-secondary {
-    background-color: var(--cool-insight);
-}
-
-.btn-secondary:hover {
-    box-shadow: 0 10px 15px -3px rgba(93, 169, 233, 0.2);
 }
 
 .preview-container {
@@ -115,71 +30,75 @@ h1 {
     width: 100%;
 }
 
+/* Page Render Area */
 .page-wrapper {
     position: relative;
-    margin-bottom: 24px;
-    border: 1px solid var(--line-gray);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    background: #fff;
-    display: inline-block; /* Ensure it fits the image exactly */
+    margin-bottom: 32px;
+    border: 1px solid var(--border-line);
+    background: var(--bg-surface);
+    display: inline-block;
+    border-radius: 4px; /* Slight edge for paper look */
+    overflow: hidden;
 }
 
 .page-wrapper img {
-    display: block; /* Removing inline gap */
-    width: 100%; /* Image is rendered full width internally */
+    display: block;
+    width: 100%;
 }
 
-/* The interactive overlay wrapper */
+/* The interactive overlay layer */
 .overlay-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    cursor: crosshair; /* To easily draw boxes */
+    cursor: crosshair;
 }
 
 .redaction-box {
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
-    border: 2px solid var(--warm-signal);
+    background-color: rgba(0, 0, 0, 0.85); /* Heavy redaction look */
+    border: 1px solid var(--brand-teal);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: transform 0.2s;
 }
 
 .redaction-box:hover {
-    background-color: rgba(242, 166, 90, 0.5); /* Warm signal when hovered */
+    transform: scale(1.02);
+    z-index: 10;
 }
 
-/* Metadata tag */
+/* Metadata tag for the box */
 .box-tag {
     position: absolute;
-    top: -24px;
-    left: -2px;
-    background-color: var(--warm-signal);
+    top: -20px;
+    left: 0;
+    background-color: var(--brand-teal);
     color: #fff;
-    font-size: 10px;
-    font-weight: bold;
+    font-size: 9px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 2px 8px;
-    border-radius: 9999px;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 2px; /* Squirrel, not pill */
     pointer-events: none;
 }
 
 .controls {
     margin-top: 32px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start; /* Left aligned as per Apex Modern */
     gap: 16px;
     width: 100%;
 }
 
 #loading {
     display: none;
-    text-align: center;
-    color: var(--muted-slate);
-    margin-top: 16px;
+    text-align: left;
+    color: var(--brand-rosy);
+    margin-top: 24px;
+    font-weight: 500;
     animation: pulse 1.5s infinite ease-in-out;
 }
 
@@ -189,7 +108,7 @@ h1 {
 }
 
 .helper-text {
-    font-size: 14px;
-    color: var(--muted-slate);
-    margin-bottom: 16px;
+    font-size: 0.9375rem;
+    color: var(--brand-rosy);
+    margin-bottom: 24px;
 }
