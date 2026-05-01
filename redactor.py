@@ -103,6 +103,10 @@ def propose_redactions(pdf_bytes):
                 match_str = match.group()
                 insts = page.search_for(match_str)
                 for inst in insts:
+                    # Convert native coordinates to rotated view if necessary
+                    if page.rotation != 0:
+                        inst = inst * page.rotation_matrix
+
                     # inst is a Rect. Add padding
                     x0 = max(0, inst.x0 - pad_x)
                     y0 = max(0, inst.y0 - pad_y)
@@ -124,12 +128,35 @@ def propose_redactions(pdf_bytes):
                 # To get rects of where the image is on the page
                 img_rects = page.get_image_rects(xref)
                 for r in img_rects:
+                    # Convert native coordinates to rotated view if necessary
+                    if page.rotation != 0:
+                        r = r * page.rotation_matrix
+
                     proposals.append({
                         "page": page_index,
                         "rect": [r.x0, r.y0, r.x1, r.y1],
                         "type": "image",
                         "reason": f"Embedded Image/Logo"
                     })
+        
+        # Method 3: Add a standard 'Seal Box' proportional to page size
+        # Position: Right edge, halfway down. Size: ~100x100 pts.
+        seal_width = 100
+        seal_height = 100
+        margin = 10 # small buffer from the edge
+        
+        x1 = page_rect.width - margin
+        x0 = x1 - seal_width
+        y_center = page_rect.height / 2
+        y0 = y_center - (seal_height / 2)
+        y1 = y_center + (seal_height / 2)
+        
+        proposals.append({
+            "page": page_index,
+            "rect": [x0, y0, x1, y1],
+            "type": "seal",
+            "reason": "Standard Seal Location"
+        })
                     
     doc.close()
     
@@ -145,17 +172,43 @@ def apply_redactions(pdf_bytes, redactions):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     
     for r in redactions:
-        page_idx = r["page"]
-        rect = fitz.Rect(r["rect"])
-        if page_idx < len(doc):
-            page = doc[page_idx]
-            # Add redaction annotation (this is the box that will be applied)
-            # By default PyMuPDF fills the box with black.
-            page.add_redact_annot(rect, fill=(0, 0, 0))
+        page_idx = r.get("page")
+        rect_coords = r.get("rect")
+        if page_idx is not None and rect_coords and page_idx < len(doc):
+            # Ensure coordinates are valid floats and in correct order (x0, y0, x1, y1)
+            try:
+                x0, y0, x1, y1 = [float(c) for c in rect_coords]
+                # PyMuPDF expects x0 < x1 and y0 < y1
+                rect = fitz.Rect(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
+                
+                if rect.is_empty or rect.is_infinite:
+                    continue
+                    
+                page = doc[page_idx]
+                
+                # IMPORTANT: If the page is rotated, the coordinates from the browser
+                # (which match the visible view) must be transformed back to the 
+                # PDF's native (unrotated) coordinate system before adding annotations.
+                if page.rotation != 0:
+                    # ~page.rotation_matrix is the inverse matrix that maps 
+                    # from the rotated view back to the native system.
+                    rect = rect * ~page.rotation_matrix
+                
+                # Final check to ensure the rect is within the native page bounds
+                # and well-formed for the redaction engine.
+                rect.normalize()
+                
+                page.add_redact_annot(rect, fill=(0, 0, 0))
+            except (ValueError, TypeError):
+                continue
     
-    # Actually burn the redactions into the document removing underlying layers irreversibly
+    # Actually burn the redactions into the document
     for page in doc:
-        page.apply_redactions()
+        # check if page has any redaction annotations before applying
+        if page.first_annot: # Simple check, apply_redactions is safe to call anyway
+            page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_REMOVE)
+            # After applying, we might want to clean up any remaining artifacts
+            page.clean_contents()
         
     # Metadata scrubbing
     doc.set_metadata({

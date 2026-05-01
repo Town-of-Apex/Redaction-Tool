@@ -7,9 +7,11 @@ services:
       - "9000:8000"
     environment:
       - PORT=8000
-      - FLASK_DEBUG=false
-    # Optional: mount a directory if you want to save logs or processed files persistent (though not needed for current app logic)
-    # volumes:
-    #   - ./data:/app/data
+      - FLASK_DEBUG=true
+      - FLASK_APP=app.py
+    command: flask run --host=0.0.0.0 --port=8000
+    volumes:
+      - .:/app
+      - /app/.venv  # This "anonymous volume" preserves the container's installed packages
 
 

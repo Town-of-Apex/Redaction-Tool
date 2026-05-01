@@ -60,10 +60,19 @@
                 <div class="card">
                     <p class="metadata">Manual Review Required</p>
                     <h2 class="mt-1">Verify Redactions</h2>
-                    <p class="body-text mt-2">Review the automatically detected signatures. Click any box to remove it,
-                        or click and drag to add new redaction areas.</p>
+                    <p class="body-text mt-2">Review the automatically detected signatures. Right-click any box to remove it, or click and drag a box to move it. Click and drag on the page to add new redaction areas.</p>
 
-                    <div id="pagesArea" class="mt-8"></div>
+                    <div class="flex-row mt-4" style="justify-content: flex-start; gap: 24px; align-items: center;">
+                        <div class="flex-row" style="gap: 12px; align-items: center;">
+                            <label for="zoomRange" class="metadata">Zoom</label>
+                            <input type="range" id="zoomRange" min="50" max="200" value="100" style="width: 150px;">
+                            <span id="zoomValue" class="metadata">100%</span>
+                        </div>
+                    </div>
+
+                    <div id="scrollArea" class="mt-8" style="overflow: auto; max-height: 80vh; border: 1px solid var(--border-line); background: var(--bg-inner); padding: 20px; border-radius: var(--radius-card);">
+                        <div id="pagesArea" style="display: flex; flex-direction: column; align-items: center; gap: 32px;"></div>
+                    </div>
 
                     <!-- Use 'btn' classes for actions -->
                     <div class="flex-row mt-8">

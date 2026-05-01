@@ -9,6 +9,13 @@ const redactBtn = document.getElementById('redactBtn');
 let currentFile = null;
 let currentRedactions = []; // Array of { page: i, rect: [x0, y0, x1, y1] }
 let pageDimensions = {}; // { page_index: { width, height } }
+let currentZoom = 100;
+let draggingBoxIdx = -1;
+let dragStartX = 0;
+let dragStartY = 0;
+let boxInitialLeft = 0;
+let boxInitialTop = 0;
+let activePageIdx = -1;
 
 // UI Interactions
 dropZone.addEventListener('click', () => fileInput.click());
@@ -35,6 +42,28 @@ fileInput.addEventListener('change', (e) => {
         handleFile(e.target.files[0]);
     }
 });
+
+const zoomRange = document.getElementById('zoomRange');
+const zoomValue = document.getElementById('zoomValue');
+
+zoomRange.addEventListener('input', (e) => {
+    currentZoom = parseInt(e.target.value);
+    zoomValue.innerText = `${currentZoom}%`;
+    updatePageScales();
+});
+
+function updatePageScales() {
+    document.querySelectorAll('.page-wrapper').forEach(wrapper => {
+        const pageIdx = wrapper.dataset.page;
+        const dims = pageDimensions[pageIdx];
+        if (dims) {
+            const baseWidth = 800; // Standard base width for 100% zoom
+            const scaledWidth = baseWidth * (currentZoom / 100);
+            wrapper.style.width = `${scaledWidth}px`;
+            // Aspect ratio will handle the height
+        }
+    });
+}
 
 function handleFile(file) {
     if (file.type !== "application/pdf") {
@@ -78,12 +107,16 @@ function renderPages(pages) {
         const wrapper = document.createElement('div');
         wrapper.className = 'page-wrapper';
         wrapper.dataset.page = page.page;
-        wrapper.style.width = "100%"; // Let it expand inside the container natively
-        // Provide standard aspect ratio layout
+        
+        const baseWidth = 800;
+        const scaledWidth = baseWidth * (currentZoom / 100);
+        wrapper.style.width = `${scaledWidth}px`;
         wrapper.style.aspectRatio = `${page.width} / ${page.height}`;
         
         const img = document.createElement('img');
         img.src = `data:image/png;base64,${page.image_base64}`;
+        img.style.width = "100%";
+        img.style.display = "block";
         
         const overlay = document.createElement('div');
         overlay.className = 'overlay-layer';
@@ -95,7 +128,7 @@ function renderPages(pages) {
         let activeBox = null;
         
         overlay.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('redaction-box')) return; // handled by box removal
+            if (e.target.classList.contains('redaction-box') || e.target.closest('.redaction-box')) return; 
             isDrawing = true;
             const rect = overlay.getBoundingClientRect();
             startX = e.clientX - rect.left;
@@ -111,52 +144,79 @@ function renderPages(pages) {
         });
         
         overlay.addEventListener('mousemove', (e) => {
-            if (!isDrawing || !activeBox) return;
             const rect = overlay.getBoundingClientRect();
             const currentX = e.clientX - rect.left;
             const currentY = e.clientY - rect.top;
-            
-            const left = Math.min(startX, currentX);
-            const top = Math.min(startY, currentY);
-            const width = Math.abs(currentX - startX);
-            const height = Math.abs(currentY - startY);
-            
-            activeBox.style.left = left + 'px';
-            activeBox.style.top = top + 'px';
-            activeBox.style.width = width + 'px';
-            activeBox.style.height = height + 'px';
+
+            if (isDrawing && activeBox) {
+                const left = Math.min(startX, currentX);
+                const top = Math.min(startY, currentY);
+                const width = Math.abs(currentX - startX);
+                const height = Math.abs(currentY - startY);
+                
+                activeBox.style.left = left + 'px';
+                activeBox.style.top = top + 'px';
+                activeBox.style.width = width + 'px';
+                activeBox.style.height = height + 'px';
+            } else if (draggingBoxIdx !== -1 && activePageIdx === page.page) {
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                
+                const box = overlay.querySelector(`.redaction-box[data-idx="${draggingBoxIdx}"]`);
+                if (box) {
+                    box.style.left = (boxInitialLeft + dx) + 'px';
+                    box.style.top = (boxInitialTop + dy) + 'px';
+                }
+            }
         });
         
         overlay.addEventListener('mouseup', (e) => {
-            if (!isDrawing || !activeBox) return;
-            isDrawing = false;
-            
-            // convert DOM px to PDF points
             const domRect = overlay.getBoundingClientRect();
             const pdfWidth = pageDimensions[page.page].width;
             const pdfHeight = pageDimensions[page.page].height;
-            
             const scaleX = pdfWidth / domRect.width;
             const scaleY = pdfHeight / domRect.height;
-            
-            let bx = parseFloat(activeBox.style.left) * scaleX;
-            let by = parseFloat(activeBox.style.top) * scaleY;
-            let bw = parseFloat(activeBox.style.width) * scaleX;
-            let bh = parseFloat(activeBox.style.height) * scaleY;
-            
-            // If the box is too small, cancel it
-            if (bw < 5 || bh < 5) {
-                overlay.removeChild(activeBox);
-            } else {
-                currentRedactions.push({
-                    page: page.page,
-                    rect: [bx, by, bx+bw, by+bh],
-                    type: 'manual',
-                    reason: 'Manual Redaction'
-                });
-                renderRedactions(); // refresh all
+
+            if (isDrawing && activeBox) {
+                isDrawing = false;
+                
+                let bx = parseFloat(activeBox.style.left) * scaleX;
+                let by = parseFloat(activeBox.style.top) * scaleY;
+                let bw = parseFloat(activeBox.style.width) * scaleX;
+                let bh = parseFloat(activeBox.style.height) * scaleY;
+                
+                // If the box is too small, cancel it
+                if (bw < 5 || bh < 5) {
+                    overlay.removeChild(activeBox);
+                } else {
+                    currentRedactions.push({
+                        page: page.page,
+                        rect: [bx, by, bx+bw, by+bh],
+                        type: 'manual',
+                        reason: 'Manual Redaction'
+                    });
+                    renderRedactions(); // refresh all
+                }
+                activeBox = null;
+            } else if (draggingBoxIdx !== -1 && activePageIdx === page.page) {
+                const box = overlay.querySelector(`.redaction-box[data-idx="${draggingBoxIdx}"]`);
+                if (box) {
+                    const left = parseFloat(box.style.left);
+                    const top = parseFloat(box.style.top);
+                    const width = parseFloat(box.style.width);
+                    const height = parseFloat(box.style.height);
+
+                    const x0 = left * scaleX;
+                    const y0 = top * scaleY;
+                    const x1 = (left + width) * scaleX;
+                    const y1 = (top + height) * scaleY;
+
+                    currentRedactions[draggingBoxIdx].rect = [x0, y0, x1, y1];
+                    renderRedactions();
+                }
+                draggingBoxIdx = -1;
+                activePageIdx = -1;
             }
-            activeBox = null;
         });
         
         wrapper.appendChild(img);
@@ -188,6 +248,7 @@ function renderRedactions() {
         
         const box = document.createElement('div');
         box.className = 'redaction-box';
+        box.dataset.idx = idx;
         box.style.left = `${leftPct}%`;
         box.style.top = `${topPct}%`;
         box.style.width = `${widthPct}%`;
@@ -200,11 +261,33 @@ function renderRedactions() {
         tag.innerText = r.type || "Area";
         box.appendChild(tag);
         
-        // Remove on click
-        box.addEventListener('click', (e) => {
+        // Drag logic
+        box.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Only left click
+            e.stopPropagation();
+            draggingBoxIdx = idx;
+            activePageIdx = r.page;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            
+            const rect = box.getBoundingClientRect();
+            const parentRect = overlay.getBoundingClientRect();
+            boxInitialLeft = rect.left - parentRect.left;
+            boxInitialTop = rect.top - parentRect.top;
+            
+            // Switch to px for movement
+            box.style.width = rect.width + 'px';
+            box.style.height = rect.height + 'px';
+            box.style.left = boxInitialLeft + 'px';
+            box.style.top = boxInitialTop + 'px';
+        });
+
+        // Remove on right-click
+        box.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
             e.stopPropagation();
             currentRedactions.splice(idx, 1);
-            renderRedactions(); // recursive re-render
+            renderRedactions();
         });
         
         overlay.appendChild(box);

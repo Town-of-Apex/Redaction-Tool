@@ -58,9 +58,9 @@
 
 .redaction-box {
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.85); /* Heavy redaction look */
+    background-color: rgba(0, 0, 0, 0.4); /* Transparent preview look */
     border: 1px solid var(--brand-teal);
-    cursor: pointer;
+    cursor: move;
     transition: transform 0.2s;
 }
 
