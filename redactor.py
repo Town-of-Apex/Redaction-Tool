@@ -34,8 +34,7 @@ REDACTION_CONFIG = [
     }
 ]
 
-# Configure whether we should also propose redacting all embedded images (which are often logos/seals)
-PROPOSE_IMAGE_REDACTION = True
+
 
 def generate_previews(pdf_bytes):
     """
@@ -76,11 +75,14 @@ def generate_previews(pdf_bytes):
     doc.close()
     return pages
 
-def propose_redactions(pdf_bytes):
+def propose_redactions(pdf_bytes, regex_config=None, propose_images=True):
     """
-    Analyzes the PDF based on REDACTION_CONFIG and PROPOSE_IMAGE_REDACTION.
+    Analyzes the PDF based on regex_config (or REDACTION_CONFIG) and propose_images.
     Returns a list of proposed bounding boxes.
     """
+    if regex_config is None:
+        regex_config = REDACTION_CONFIG
+        
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     proposals = []
     
@@ -92,7 +94,7 @@ def propose_redactions(pdf_bytes):
         # Method 1: Regex matches on full page text
         page_text = page.get_text()
         
-        for config in REDACTION_CONFIG:
+        for config in regex_config:
             pattern = config["pattern"]
             pad_x = config["padding_x"]
             pad_y = config["padding_y"]
@@ -121,7 +123,7 @@ def propose_redactions(pdf_bytes):
                     })
                     
         # Method 2: Identify images
-        if PROPOSE_IMAGE_REDACTION:
+        if propose_images:
             image_list = page.get_images(full=True)
             for img_index, img in enumerate(image_list):
                 xref = img[0]
@@ -138,25 +140,6 @@ def propose_redactions(pdf_bytes):
                         "type": "image",
                         "reason": f"Embedded Image/Logo"
                     })
-        
-        # Method 3: Add a standard 'Seal Box' proportional to page size
-        # Position: Right edge, halfway down. Size: ~100x100 pts.
-        seal_width = 100
-        seal_height = 100
-        margin = 10 # small buffer from the edge
-        
-        x1 = page_rect.width - margin
-        x0 = x1 - seal_width
-        y_center = page_rect.height / 2
-        y0 = y_center - (seal_height / 2)
-        y1 = y_center + (seal_height / 2)
-        
-        proposals.append({
-            "page": page_index,
-            "rect": [x0, y0, x1, y1],
-            "type": "seal",
-            "reason": "Standard Seal Location"
-        })
                     
     doc.close()
     

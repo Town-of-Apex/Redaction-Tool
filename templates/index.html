@@ -10,6 +10,12 @@
     <!-- 2. Include your app-specific styles (e.g., custom animations or specific tool layouts) -->
     <link rel="stylesheet" href="static/style.css">
     <link rel="icon" href="static/icon.ico" sizes="any">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active-tab { display: block; }
+        .carousel-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .hidden { display: none !important; }
+    </style>
 </head>
 
 <body>
@@ -17,10 +23,15 @@
     <!-- STANDARD HEADER -->
     <header>
         <div class="app-container">
-            <div class="header-content">
-                <!-- Branding Logo -->
-                <img src="static/logo.svg" class="app-logo" alt="Apex Redact logo">
-                <h1 class="title-display">Apex Redact</h1>
+            <div class="header-content" style="justify-content: space-between; width: 100%;">
+                <div class="flex-row">
+                    <img src="static/logo.svg" class="app-logo" alt="Apex Redact logo">
+                    <h1 class="title-display">Apex Redact</h1>
+                </div>
+                <div class="flex-row">
+                    <button class="btn btn-ghost tab-btn active-tab" data-target="mainTab" id="navMain">Redact Documents</button>
+                    <button class="btn btn-ghost tab-btn" data-target="profilesTab" id="navProfiles">Manage Profiles</button>
+                </div>
             </div>
         </div>
     </header>
@@ -29,59 +40,165 @@
     <main class="main-content">
         <div class="app-container">
 
-            <!-- Initial Upload State -->
-            <div class="card" id="uploadCard">
-                <p class="metadata">Security & Compliance</p>
-                <h2 class="mt-1">Upload Document</h2>
-                <p class="body-text mt-2">Select a text-searchable PDF building permit application. Analysis is
-                    performed
-                    locally in your browser to ensure data privacy.</p>
+            <!-- MAIN TAB: REDACT DOCUMENTS -->
+            <div id="mainTab" class="tab-content active-tab">
+                <div class="card" id="uploadCard">
+                    <h2 class="mt-1">Upload Documents</h2>
+                    <p class="body-text mt-2">Select one or more PDF files. Any analysis is performed locally in your browser to ensure data privacy.</p>
 
-                <!-- Use 'mt-8' for standard section spacing -->
-                <div class="mt-8">
-                    <div class="upload-zone" id="dropZone">
-                        <input type="file" id="fileInput" accept="application/pdf">
-                        <svg class="icon"
-                            style="width: 40px; height: 40px; color: var(--brand-teal); margin-bottom: 1rem;"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <p>Click or drag and drop a PDF file here</p>
+                    <div class="mt-4">
+                        <label for="profileSelectInitial" class="metadata">Apply Profile (Optional)</label>
+                        <select id="profileSelectInitial" class="mt-1" style="width: 100%; padding: 0.5rem; background: var(--bg-inner); border: 1px solid var(--border-line); border-radius: var(--radius-sm); color: var(--text-main);">
+                            <option value="">-- No Profile --</option>
+                        </select>
                     </div>
 
-                    <div id="loading" class="mt-4">Processing document, identifying sensitive fields...</div>
-                </div>
-            </div>
-
-            <!-- Preview & Redact State -->
-            <div class="preview-container" id="previewContainer">
-                <div class="card">
-                    <p class="metadata">Manual Review Required</p>
-                    <h2 class="mt-1">Verify Redactions</h2>
-                    <p class="body-text mt-2">Review the automatically detected signatures. Right-click any box to remove it, or click and drag a box to move it. Click and drag on the page to add new redaction areas.</p>
-
-                    <div class="flex-row mt-4" style="justify-content: flex-start; gap: 24px; align-items: center;">
-                        <div class="flex-row" style="gap: 12px; align-items: center;">
-                            <label for="zoomRange" class="metadata">Zoom</label>
-                            <input type="range" id="zoomRange" min="50" max="200" value="100" style="width: 150px;">
-                            <span id="zoomValue" class="metadata">100%</span>
+                    <div class="mt-4">
+                        <label class="metadata">Image Redaction</label>
+                        <div class="flex-row mt-1" style="align-items: center; justify-content: flex-start; gap: 8px;">
+                            <input type="checkbox" id="mainImageRedactionToggle" checked style="width: auto; flex: none;">
+                            <label for="mainImageRedactionToggle" class="body-text" style="margin: 0; font-size: 0.9rem; flex: none;">Auto-detect embedded images</label>
                         </div>
                     </div>
 
-                    <div id="scrollArea" class="mt-8" style="overflow: auto; max-height: 80vh; border: 1px solid var(--border-line); background: var(--bg-inner); padding: 20px; border-radius: var(--radius-card);">
-                        <div id="pagesArea" style="display: flex; flex-direction: column; align-items: center; gap: 32px;"></div>
+                    <div class="mt-8">
+                        <div class="upload-zone" id="dropZone">
+                            <input type="file" id="fileInput" accept="application/pdf" multiple>
+                            <svg class="icon"
+                                style="width: 40px; height: 40px; color: var(--brand-teal); margin-bottom: 1rem;"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p>Click or drag and drop PDF files here</p>
+                        </div>
+
+                        <div id="loading" class="mt-4 hidden">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <svg class="icon" style="animation: spin 1s linear infinite; width: 24px; height: 24px; color: var(--brand-teal);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                                <span id="loadingText">Processing documents, identifying sensitive fields...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-container hidden" id="previewContainer">
+                    <div class="card">
+                        <div class="carousel-controls">
+                            <button class="btn btn-secondary" id="prevFileBtn">&larr; Previous File</button>
+                            <h3 id="currentFileLabel">File 1 of 1</h3>
+                            <button class="btn btn-secondary" id="nextFileBtn">Next File &rarr;</button>
+                        </div>
+
+                        <p class="metadata">Manual Review Required</p>
+                        <h2 class="mt-1" id="fileNameDisplay">Verify Redactions</h2>
+                        <p class="body-text mt-2">Review the automatically detected signatures or profile redactions. Right-click any box to remove it, or click and drag a box to move it. Click and drag on the page to add new redaction areas.</p>
+
+                        <div class="flex-row mt-4" style="justify-content: flex-start; gap: 24px; align-items: center;">
+                            <div class="flex-row" style="gap: 12px; align-items: center;">
+                                <label for="profileSelect" class="metadata">Apply Profile</label>
+                                <select id="profileSelect" style="padding: 0.5rem; background: var(--bg-inner); border: 1px solid var(--border-line); border-radius: var(--radius-sm); color: var(--text-main);">
+                                    <option value="">-- No Profile --</option>
+                                </select>
+                            </div>
+                            <div class="flex-row" style="gap: 12px; align-items: center;">
+                                <label for="zoomRange" class="metadata">Zoom</label>
+                                <input type="range" id="zoomRange" min="50" max="200" value="100" style="width: 150px;">
+                                <span id="zoomValue" class="metadata">100%</span>
+                            </div>
+                            <div class="flex-row" style="gap: 8px; align-items: center; justify-content: flex-start;">
+                                <input type="checkbox" id="mainImageRedactionToggleEditor" checked style="width: auto; flex: none;">
+                                <label for="mainImageRedactionToggleEditor" class="metadata" style="margin: 0; flex: none;">Auto-Redact Images</label>
+                            </div>
+                        </div>
+
+                        <div id="scrollArea" class="mt-8" style="overflow: auto; max-height: 80vh; border: 1px solid var(--border-line); background: var(--bg-inner); padding: 20px; border-radius: var(--radius-card);">
+                            <div id="pagesArea" style="display: flex; flex-direction: column; align-items: center; gap: 32px;"></div>
+                        </div>
+
+                        <div class="flex-row mt-8">
+                            <button class="btn btn-primary" id="redactBtn">
+                                Confirm & Download Current
+                            </button>
+                            <button class="btn btn-primary" id="redactAllBtn">
+                                Confirm & Download All
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.location.reload()">
+                                Cancel & Start Over
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROFILES TAB: MANAGE PROFILES -->
+            <div id="profilesTab" class="tab-content">
+                <div class="card" id="profileUploadCard">
+                    <h2 class="mt-1">Create Profile</h2>
+                    <p class="body-text mt-2">Upload a template document to define a new redaction profile.</p>
+
+                    <div class="mt-4">
+                        <label for="newProfileName" class="metadata">Profile Name</label>
+                        <input type="text" id="newProfileName" placeholder="e.g. Building Permit Type A" style="width: 100%; padding: 0.5rem; background: var(--bg-inner); border: 1px solid var(--border-line); border-radius: var(--radius-sm); color: var(--text-main); margin-top: 0.5rem;">
                     </div>
 
-                    <!-- Use 'btn' classes for actions -->
-                    <div class="flex-row mt-8">
-                        <button class="btn btn-primary" id="redactBtn">
-                            Confirm & Download Redacted
-                        </button>
-                        <button class="btn btn-secondary" onclick="window.location.reload()">
-                            Cancel & Start Over
-                        </button>
+                    <div class="mt-8">
+                        <h3>Regex Auto-Redactions</h3>
+                        <p class="body-text mt-1">Add regex patterns to automatically redact matches.</p>
+                        <div id="regexList" class="stack mt-4"></div>
+                        <div class="flex-row mt-4" style="align-items: center; justify-content: flex-start; gap: 1rem;">
+                            <button class="btn btn-secondary" id="addRegexBtn">+ Add Regex Rule</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h3>Image Auto-Redactions</h3>
+                        <p class="body-text mt-1">Automatically detect and propose redactions for all embedded images.</p>
+                        <div class="mt-4">
+                            <label class="metadata">Redaction Preference</label>
+                            <div class="flex-row mt-1" style="align-items: center; justify-content: flex-start; gap: 8px;">
+                                <input type="checkbox" id="profileImageRedactionToggle" checked onchange="updateTemplateRegexPreview()" style="width: auto; flex: none;">
+                                <label for="profileImageRedactionToggle" class="body-text" style="margin: 0; flex: none;">Redact Embedded Images</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8" style="border-top: 1px solid var(--border-line); padding-top: 2rem;">
+                        <h3>Spatial Auto-Redactions</h3>
+                        <p class="body-text mt-1">Upload a template document to define fixed spatial redaction boxes.</p>
+                        <div class="upload-zone mt-4" id="profileDropZone">
+                            <input type="file" id="profileFileInput" accept="application/pdf">
+                            <p>Click or drag and drop a template PDF here</p>
+                        </div>
+                        <div id="profileLoading" class="mt-4 hidden">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <svg class="icon" style="animation: spin 1s linear infinite; width: 24px; height: 24px; color: var(--brand-teal);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                                <span>Loading template...</span>
+                            </div>
+                        </div>
+
+                        <div id="profilePreviewContainer" class="hidden mt-8">
+                            <h4 class="mt-1">Define Spatial Boxes</h4>
+                            <p class="body-text mt-2">Draw redaction boxes on this template. Any valid regex rules you defined above will also appear dynamically.</p>
+                            <div id="profileScrollArea" class="mt-4" style="overflow: auto; max-height: 80vh; border: 1px solid var(--border-line); background: var(--bg-inner); padding: 20px; border-radius: var(--radius-card);">
+                                <div id="profilePagesArea" style="display: flex; flex-direction: column; align-items: center; gap: 32px;"></div>
+                            </div>
+                            <div class="mt-4">
+                                <button class="btn btn-secondary" id="cancelProfileBtn">Remove Template</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex-row">
+                        <button class="btn btn-primary" id="saveProfileBtn">Save Profile</button>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3>Existing Profiles</h3>
+                        <ul id="existingProfilesList" class="mt-4" style="list-style: none; padding: 0;">
+                            <!-- Populated via JS -->
+                        </ul>
                     </div>
                 </div>
             </div>
