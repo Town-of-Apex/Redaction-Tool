@@ -277,7 +277,6 @@ if (ENABLE_AUTO_REDACT && cancelProfileBtn) cancelProfileBtn.addEventListener('c
     profileFile = null;
     document.getElementById('profileFileInput').value = '';
 });
-}
 
 // ----- MAIN APP: REDACT DOCUMENTS -----
 let filesData = []; // Array of { file, pages, redactions, dimensions, filename }
