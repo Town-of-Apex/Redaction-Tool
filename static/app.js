@@ -1,3 +1,6 @@
+// Deployment flag from server (false = manual draw-only; no proposal boxes)
+const ENABLE_AUTO_REDACT = !!window.ENABLE_AUTO_REDACT;
+
 // Tab Switching
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -14,12 +17,17 @@ tabBtns.forEach(btn => {
 // Profile Management
 let profiles = [];
 async function loadProfiles() {
+    if (!ENABLE_AUTO_REDACT) {
+        profiles = [];
+        return;
+    }
     const res = await fetch('/api/profiles');
     profiles = await res.json();
     
     // Update Selects
     const selects = [document.getElementById('profileSelect'), document.getElementById('profileSelectInitial')];
     selects.forEach(select => {
+        if (!select) return;
         select.innerHTML = '<option value="">-- No Profile --</option>';
         profiles.forEach(p => {
             const opt = document.createElement('option');
@@ -31,6 +39,7 @@ async function loadProfiles() {
     
     // Update List
     const list = document.getElementById('existingProfilesList');
+    if (!list) return;
     list.innerHTML = '';
     profiles.forEach(p => {
         const li = document.createElement('li');
@@ -61,25 +70,30 @@ async function loadProfiles() {
 loadProfiles();
 
 
-// Sync Profile Selects
+// Sync Profile Selects (no-op stubs when auto is off)
 const profileInit = document.getElementById('profileSelectInitial');
 const profileFinal = document.getElementById('profileSelect');
-profileInit.addEventListener('change', () => profileFinal.value = profileInit.value);
+if (profileInit && profileFinal) {
+    profileInit.addEventListener('change', () => profileFinal.value = profileInit.value);
+}
 
 // Sync Main Image Redaction Toggles
 const imageToggleInit = document.getElementById('mainImageRedactionToggle');
 const imageToggleEditor = document.getElementById('mainImageRedactionToggleEditor');
-imageToggleInit.addEventListener('change', (e) => imageToggleEditor.checked = e.target.checked);
-imageToggleEditor.addEventListener('change', async (e) => {
-    imageToggleInit.checked = e.target.checked;
-    if (filesData.length > 0) {
-        document.getElementById('loadingText').innerText = "Updating analysis...";
-        loading.classList.remove('hidden');
-        await applySelectedProfile();
-        loading.classList.add('hidden');
-        showFile(currentFileIdx);
-    }
-});
+if (imageToggleInit && imageToggleEditor) {
+    imageToggleInit.addEventListener('change', (e) => imageToggleEditor.checked = e.target.checked);
+    imageToggleEditor.addEventListener('change', async (e) => {
+        imageToggleInit.checked = e.target.checked;
+        if (!ENABLE_AUTO_REDACT) return;
+        if (filesData.length > 0) {
+            document.getElementById('loadingText').innerText = "Updating analysis...";
+            loading.classList.remove('hidden');
+            await applySelectedProfile();
+            loading.classList.add('hidden');
+            showFile(currentFileIdx);
+        }
+    });
+}
 
 // Shared State & Utils
 let currentZoom = 100;
@@ -124,11 +138,13 @@ const profilePreviewContainer = document.getElementById('profilePreviewContainer
 const profilePagesArea = document.getElementById('profilePagesArea');
 const profileLoading = document.getElementById('profileLoading');
 
+if (ENABLE_AUTO_REDACT && profileDropZone && profileFileInput) {
 profileDropZone.addEventListener('click', () => profileFileInput.click());
 profileDropZone.addEventListener('dragover', (e) => { e.preventDefault(); profileDropZone.style.borderColor = "var(--brand-accent)"; });
 profileDropZone.addEventListener('dragleave', () => { profileDropZone.style.borderColor = "var(--muted-slate)"; });
 profileDropZone.addEventListener('drop', (e) => { e.preventDefault(); profileDropZone.style.borderColor = "var(--muted-slate)"; if (e.dataTransfer.files.length) handleProfileFile(e.dataTransfer.files[0]); });
 profileFileInput.addEventListener('change', (e) => { if (e.target.files.length) handleProfileFile(e.target.files[0]); });
+}
 
 function handleProfileFile(file) {
     if (file.type !== "application/pdf") { alert("Please upload a PDF file."); return; }
@@ -183,10 +199,13 @@ async function updateTemplateRegexPreview() {
 
 let profileRegexes = [];
 
-document.getElementById('addRegexBtn').addEventListener('click', () => {
+const addRegexBtn = document.getElementById('addRegexBtn');
+if (ENABLE_AUTO_REDACT && addRegexBtn) {
+addRegexBtn.addEventListener('click', () => {
     profileRegexes.push({ pattern: "", padding_x: 50, padding_y: 30 });
     renderRegexes();
 });
+}
 
 function renderRegexes() {
     const list = document.getElementById('regexList');
@@ -248,14 +267,17 @@ function saveCurrentProfile() {
     });
 }
 
-document.getElementById('saveProfileBtn').addEventListener('click', saveCurrentProfile);
-document.getElementById('cancelProfileBtn').addEventListener('click', () => {
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+const cancelProfileBtn = document.getElementById('cancelProfileBtn');
+if (ENABLE_AUTO_REDACT && saveProfileBtn) saveProfileBtn.addEventListener('click', saveCurrentProfile);
+if (ENABLE_AUTO_REDACT && cancelProfileBtn) cancelProfileBtn.addEventListener('click', () => {
     profilePreviewContainer.classList.add('hidden');
     profileDropZone.classList.remove('hidden');
     profileRedactions = [];
     profileFile = null;
     document.getElementById('profileFileInput').value = '';
 });
+}
 
 // ----- MAIN APP: REDACT DOCUMENTS -----
 let filesData = []; // Array of { file, pages, redactions, dimensions, filename }
@@ -287,7 +309,11 @@ async function handleMainFiles(files) {
         
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('image_redaction', document.getElementById('mainImageRedactionToggle').checked ? 'true' : 'false');
+        const imgToggle = document.getElementById('mainImageRedactionToggle');
+        formData.append('image_redaction', (ENABLE_AUTO_REDACT && imgToggle && imgToggle.checked) ? 'true' : 'false');
+        if (!ENABLE_AUTO_REDACT) {
+            formData.append('regexes', '[]');
+        }
         
         try {
             const r = await fetch('/api/analyze', { method: 'POST', body: formData });
@@ -296,19 +322,20 @@ async function handleMainFiles(files) {
             let dims = {};
             data.pages.forEach(pg => dims[pg.page] = { width: pg.width, height: pg.height });
             
+            const proposals = ENABLE_AUTO_REDACT ? (data.proposals || []) : [];
             filesData.push({
                 file: file,
                 filename: file.name,
                 pages: data.pages,
-                proposals: data.proposals, // save original proposals
-                redactions: [...data.proposals], // current working set
+                proposals: proposals,
+                redactions: [...proposals],
                 dimensions: dims
             });
         } catch(e) { console.error("Error analyzing", file.name); }
     }
     
     loading.classList.add('hidden');
-    loadingText.innerText = "Processing documents, identifying sensitive fields...";
+    loadingText.innerText = "Loading document previews...";
     
     if (filesData.length > 0) {
         uploadCard.classList.add('hidden');
@@ -324,7 +351,9 @@ async function handleMainFiles(files) {
             redactAllBtn.style.display = 'inline-flex';
         }
         
-        await applySelectedProfile();
+        if (ENABLE_AUTO_REDACT) {
+            await applySelectedProfile();
+        }
         currentFileIdx = 0;
         showFile(0);
     }
@@ -351,8 +380,9 @@ document.getElementById('profileSelect').addEventListener('change', async () => 
 });
 
 async function applySelectedProfile() {
+    if (!ENABLE_AUTO_REDACT) return;
     const selectedProfileId = document.getElementById('profileSelect').value;
-    const imageRedact = document.getElementById('mainImageRedactionToggleEditor').checked;
+    const imageRedact = !!(document.getElementById('mainImageRedactionToggleEditor') || {}).checked;
     let autoData = null;
     if (selectedProfileId) {
         const p = profiles.find(pr => pr.id == selectedProfileId);

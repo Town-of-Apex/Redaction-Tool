@@ -27,12 +27,13 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev
 
-# Expose the internal port Flask runs on
+# Expose the internal port gunicorn binds to
 EXPOSE 8000
 
-# Set environment variables
+# Production defaults (compose can override)
 ENV FLASK_DEBUG=false
 ENV PORT=8000
+ENV ENABLE_AUTO_REDACT=false
 
-# Run the application using gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
+# Run with gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "app:app"]

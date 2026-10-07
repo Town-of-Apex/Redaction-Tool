@@ -1,66 +1,72 @@
-# Redaction Tool
+# Redaction Tool (Apex Redact)
 
-A secure, local-first tool for semi-autonomously redacting sensitive information from PDF documents. Designed for high-volume document management in government and institutional workflows.
+Manual point-and-click PDF redaction for Town of Apex. Upload a PDF, draw boxes, burn in redactions (PyMuPDF), scrub metadata, download.
 
-## Key Accomplishments (v2.0)
+**Current basic-prod mode:** autodetection / regex proposals / image proposals / profiles are **off** by default (`ENABLE_AUTO_REDACT=false`). Set that env var to `true` only if you intentionally want those features back.
 
-### 🚀 Multi-File Batch Processing
-- **Batch Upload**: Process multiple PDF documents simultaneously.
-- **Carousel Review**: Seamlessly switch between files using an integrated carousel to review and adjust redactions before finalization.
-- **Bulk Download**: Confirm and download all redacted files in a single action.
+## Deploy on apex-box (Docker)
 
-### 📋 Advanced Profile System
-- **Hybrid Profiles**: Combine spatial bounding boxes (for consistent layouts like building plans) and dynamic regex rules (for variable text patterns) in a single profile.
-- **Live Regex Previews**: View regex matches in real-time on a template document during profile creation to verify accuracy.
-- **Persistence**: Replaced the hard-coded configuration system with a persistent SQLite database, allowing profiles to be managed and reused across different sessions.
+Host port **9004** → container **8000**.
 
-### 🔍 Enhanced Detection & Scalability
-- **Dynamic Analysis**: The detection engine is now fully parameterized by the selected profile, eliminating hard-coded regex dependencies.
-- **Image Redaction Toggle**: Granular control over embedded image auto-redaction (logos, signatures, seals) available both globally and per-profile.
-- **Pixel-Perfect Scaling**: Implemented a sophisticated zoomable/scrollable interface that ensures accurate coordinate mapping between the browser preview and the final PDF output.
-- **Rotational Awareness**: Correctly handles and preserves coordinates for rotated PDF pages.
+```bash
+cd /path/to/Redaction-Tool
+docker compose up -d --build
+```
 
-### 🎨 Apex Modern v2 UI
-- **Professional Standard**: Upgraded to the Apex Modern v2 design system, providing a clean, structured, and government-grade aesthetic.
-- **Unified Creation Flow**: A non-intrusive profile management interface that expands inline, preserving user context while defining complex rules.
+Open: `http://<apex-box-host>:9004`
 
-## Features
-- **Smart Proposals**: Automatically detects signatures, seals, and specific text patterns.
-- **Manual Control**: Click-and-drag to add custom redaction zones or right-click to remove proposed ones.
-- **Security First**: Irreversible burn-in of redactions (text/images are physically removed, not just covered) and complete metadata scrubbing.
-- **Local-Only**: No data leaves your machine; all processing happens within your local environment.
+Health check: `http://<apex-box-host>:9004/api/health`
 
-## Quick Start (Docker)
+Stop:
 
-To run the tool in a containerized manner (recommended for deployment):
+```bash
+docker compose down
+```
 
-1. **Build and start the container:**
-   ```bash
-   docker compose up -d --build
-   ```
+### Compose defaults
 
-2. **Access the tool:**
-   Open your browser and navigate to `http://localhost:9000`.
+| Setting | Value |
+|--------|--------|
+| Port | `9004:8000` |
+| Process | gunicorn (Dockerfile CMD) |
+| `FLASK_DEBUG` | `false` |
+| `ENABLE_AUTO_REDACT` | `false` |
+| Source bind-mount | none |
+| Restart | `always` |
 
-## Quick Start (Local Development)
+No app auth in this deploy — rely on Town network ACL / whitelist.
 
-If you have `uv` installed:
+## Local development
 
-1. **Install dependencies:**
-   ```bash
-   uv sync
-   ```
+```bash
+uv sync
+ENABLE_AUTO_REDACT=false uv run python app.py
+```
 
-2. **Run the application:**
-   ```bash
-   uv run python app.py
-   ```
-   The tool will be available at `http://localhost:8000`.
+App listens on `http://localhost:8000` by default.
 
-## Project Structure
-- `app.py`: Flask backend and API endpoints.
-- `redactor.py`: Core redaction logic using PyMuPDF.
-- `profiles.db`: SQLite database for persistent redaction profiles.
-- `static/`: Frontend assets (JavaScript, CSS).
-- `templates/`: HTML templates.
-- `Dockerfile` & `docker-compose.yml`: Containerization configuration.
+To exercise profiles / regex / image proposals locally:
+
+```bash
+ENABLE_AUTO_REDACT=true uv run python app.py
+```
+
+## How it works
+
+1. Browser uploads PDF to `/api/analyze` → server returns page preview images (no proposal boxes when auto is off).
+2. User draws redaction rectangles in the UI.
+3. `/api/redact` applies burn-in redactions + metadata scrub and returns the PDF.
+
+Processing happens **on the server**, not in the browser.
+
+## Project structure
+
+- `app.py` — Flask API
+- `redactor.py` — PyMuPDF preview / propose / apply
+- `static/` — UI assets
+- `templates/index.html` — UI
+- `Dockerfile` / `docker-compose.yml` — container deploy
+
+## Re-enabling auto features
+
+Set `ENABLE_AUTO_REDACT=true` in compose (or the environment). The Profiles tab and image toggles return; `/api/analyze` will emit proposal boxes again. Auto code is gated, not deleted.

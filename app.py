@@ -10,6 +10,10 @@ app = Flask(__name__)
 # Allow larger files
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
+# When false (default for basic prod), /api/analyze returns page previews only — no regex/image proposal boxes.
+ENABLE_AUTO_REDACT = os.environ.get('ENABLE_AUTO_REDACT', 'false').lower() in ('1', 'true', 'yes')
+
+
 def get_db():
     conn = sqlite3.connect('profiles.db')
     conn.row_factory = sqlite3.Row
@@ -29,7 +33,11 @@ init_db()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', enable_auto_redact=ENABLE_AUTO_REDACT)
+
+@app.route('/api/health')
+def health():
+    return jsonify({"status": "ok", "enable_auto_redact": ENABLE_AUTO_REDACT})
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_pdf():
@@ -42,22 +50,26 @@ def analyze_pdf():
         
     pdf_bytes = file.read()
     
-    # Generate previews
+    # Generate previews (always — needed for manual draw UI)
     pages = redactor.generate_previews(pdf_bytes)
-    
-    # Propose redactions
-    regexes_json = request.form.get('regexes')
-    regexes = json.loads(regexes_json) if regexes_json else None
-    
-    image_redact_str = request.form.get('image_redaction')
-    image_redact = True if image_redact_str is None else str(image_redact_str).lower() == 'true'
-    
-    proposals = redactor.propose_redactions(pdf_bytes, regex_config=regexes, propose_images=image_redact)
+
+    proposals = []
+    if ENABLE_AUTO_REDACT:
+        regexes_json = request.form.get('regexes')
+        regexes = json.loads(regexes_json) if regexes_json else None
+
+        image_redact_str = request.form.get('image_redaction')
+        image_redact = True if image_redact_str is None else str(image_redact_str).lower() == 'true'
+
+        proposals = redactor.propose_redactions(
+            pdf_bytes, regex_config=regexes, propose_images=image_redact
+        )
     
     return jsonify({
         "pages": pages,
         "proposals": proposals,
-        "filename": file.filename
+        "filename": file.filename,
+        "auto_redact": ENABLE_AUTO_REDACT,
     })
 
 @app.route('/api/redact', methods=['POST'])
@@ -91,13 +103,15 @@ def get_profiles():
                 data = json.loads(p["redactions"])
                 if isinstance(data, list):
                     data = {"boxes": data, "regexes": []}
-            except:
+            except Exception:
                 data = {"boxes": [], "regexes": []}
             result.append({"id": p["id"], "name": p["name"], "data": data})
         return jsonify(result)
 
 @app.route('/api/profiles', methods=['POST'])
 def save_profile():
+    if not ENABLE_AUTO_REDACT:
+        return jsonify({"error": "Profiles/auto-redact are disabled on this deployment"}), 403
     data = request.json
     name = data.get('name')
     profile_data = data.get('data')
@@ -107,11 +121,13 @@ def save_profile():
 
 @app.route('/api/profiles/<int:profile_id>', methods=['DELETE'])
 def delete_profile(profile_id):
+    if not ENABLE_AUTO_REDACT:
+        return jsonify({"error": "Profiles/auto-redact are disabled on this deployment"}), 403
     with get_db() as conn:
         conn.execute('DELETE FROM profiles WHERE id = ?', (profile_id,))
         return jsonify({"success": True})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    debug = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(debug=debug, host='0.0.0.0', port=port)

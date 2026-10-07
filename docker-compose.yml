@@ -4,14 +4,21 @@ services:
     container_name: redaction-tool
     restart: always
     ports:
-      - "9000:8000"
+      - "9004:8000"
     environment:
       - PORT=8000
-      - FLASK_DEBUG=true
-      - FLASK_APP=app.py
-    command: flask run --host=0.0.0.0 --port=8000
-    volumes:
-      - .:/app
-      - /app/.venv  # This "anonymous volume" preserves the container's installed packages
-
-
+      - FLASK_DEBUG=false
+      - ENABLE_AUTO_REDACT=false
+    # Use Dockerfile CMD (gunicorn). No source bind-mount.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
